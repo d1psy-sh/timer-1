@@ -40,12 +40,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmds []tea.Cmd
 		var cmd tea.Cmd
 
-		m.passed += m.timer.Interval
-		pct := m.passed.Milliseconds() * 100 / m.duration.Milliseconds()
-		cmds = append(cmds, m.progress.SetPercent(float64(pct)/100))
-
 		m.timer, cmd = m.timer.Update(msg)
 		cmds = append(cmds, cmd)
+
+		if m.timer.Running() {
+			m.passed += m.timer.Interval
+			pct := m.passed.Milliseconds() * 100 / m.duration.Milliseconds()
+			cmds = append(cmds, m.progress.SetPercent(float64(pct)/100))
+		}
 		return m, tea.Batch(cmds...)
 
 	case tea.WindowSizeMsg:
@@ -79,8 +81,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.interrupting = true
 			return m, tea.Quit
 		}
+		if key.Matches(msg, pauseKeys) {
+			cmd := m.timer.Toggle()
+			return m, cmd
+		}
 	}
-
 	return m, nil
 }
 
@@ -116,6 +121,7 @@ var (
 	version             = "dev"
 	quitKeys            = key.NewBinding(key.WithKeys("esc", "q"))
 	intKeys             = key.NewBinding(key.WithKeys("ctrl+c"))
+	pauseKeys           = key.NewBinding(key.WithKeys(" "))
 	boldStyle           = lipgloss.NewStyle().Bold(true)
 	italicStyle         = lipgloss.NewStyle().Italic(true)
 )
